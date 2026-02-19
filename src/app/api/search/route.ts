@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Location and niche are required' }, { status: 400 });
   }
 
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBxuRxr1kdsVxQxp8iPPO0lk_qW8RdaZ0w';
   const query = `${niche} in ${location}`;
 
   try {

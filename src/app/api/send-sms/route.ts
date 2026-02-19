@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const TWILIO_SID = process.env.TWILIO_SID || '';
-const TWILIO_AUTH = process.env.TWILIO_AUTH || '';
-const TWILIO_FROM = process.env.TWILIO_FROM || '';
+const TWILIO_SID = process.env.TWILIO_SID || process.env.TWILIO_ACCOUNT_SID || '';
+const TWILIO_AUTH = process.env.TWILIO_AUTH || process.env.TWILIO_AUTH_TOKEN || '';
+const TWILIO_FROM = process.env.TWILIO_FROM || process.env.TWILIO_PHONE_FROM || '';
 const TWILIO_URL = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
 
 export async function POST(req: Request) {
