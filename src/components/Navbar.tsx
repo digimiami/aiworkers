@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare, Mail, Calendar, ShoppingCart, Settings } from 'lucide-react';
 
 export default function Navbar() {
   return (
@@ -42,11 +42,27 @@ export default function Navbar() {
 	            <Send size={18} />
 	            Outreach
 	          </Link>
-	          <Link href="/landing-pages" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
-	            <Globe size={18} />
-	            Landing Pages
-	          </Link>
-	        </div>
+		          <Link href="/landing-pages" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+		            <Globe size={18} />
+		            Landing Pages
+		          </Link>
+		          <Link href="/cold-emails" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+		            <Mail size={18} />
+		            Cold Emails
+		          </Link>
+		          <Link href="/campaigns" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+		            <Calendar size={18} />
+		            Campaigns
+		          </Link>
+		          <Link href="/bulk" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+		            <ShoppingCart size={18} />
+		            Bulk
+		          </Link>
+		          <Link href="/settings" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+		            <Settings size={18} />
+		            Settings
+		          </Link>
+		        </div>
       </div>
     </nav>
   );
