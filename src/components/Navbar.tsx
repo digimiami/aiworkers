@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, Search, Zap, FileText, Send, Globe } from 'lucide-react';
+import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare } from 'lucide-react';
 
 export default function Navbar() {
   return (
@@ -9,24 +9,40 @@ export default function Navbar() {
           <Zap className="text-purple-500 fill-purple-500" />
           AI Workers
         </Link>
-<div className="flex items-center gap-6">
-	          <Link href="/" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors">
+<div className="flex items-center gap-6 overflow-x-auto">
+	          <Link href="/" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
 	            <Search size={18} />
 	            Search
 	          </Link>
-	          <Link href="/dashboard" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors">
+	          <Link href="/dashboard" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
 	            <LayoutDashboard size={18} />
 	            Dashboard
 	          </Link>
-	          <Link href="/proposals" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors">
+	          <Link href="/audit" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+	            <Briefcase size={18} />
+	            Audit
+	          </Link>
+	          <Link href="/reviews" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+	            <BarChart3 size={18} />
+	            Reviews
+	          </Link>
+	          <Link href="/competitors" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+	            <Users size={18} />
+	            Competitors
+	          </Link>
+	          <Link href="/crm" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+	            <CheckSquare size={18} />
+	            CRM
+	          </Link>
+	          <Link href="/proposals" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
 	            <FileText size={18} />
 	            Proposals
 	          </Link>
-	          <Link href="/outreach" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors">
+	          <Link href="/outreach" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
 	            <Send size={18} />
 	            Outreach
 	          </Link>
-	          <Link href="/landing-pages" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors">
+	          <Link href="/landing-pages" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
 	            <Globe size={18} />
 	            Landing Pages
 	          </Link>
