@@ -11,8 +11,10 @@ import {
   ArrowUpDown,
   MapPin,
   Star,
-  ExternalLink
+  ExternalLink,
+  FileText
 } from 'lucide-react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 interface Prospect {
@@ -192,18 +194,29 @@ export default function Dashboard() {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    {prospect.website && (
-                      <a href={prospect.website} target="_blank" className="text-gray-400 hover:text-white transition-colors">
-                        <Globe size={18} />
-                      </a>
-                    )}
-                    <button className="text-gray-400 hover:text-purple-400 transition-colors">
-                      <ExternalLink size={18} />
-                    </button>
-                  </div>
-                </td>
+<td className="px-6 py-4">
+	                  <div className="flex items-center gap-3">
+	                    {prospect.website && (
+	                      <a href={prospect.website} target="_blank" className="text-gray-400 hover:text-white transition-colors" title="Visit Website">
+	                        <Globe size={18} />
+	                      </a>
+	                    )}
+	                    <Link 
+	                      href={`/proposals?businessId=${prospect.id}`}
+	                      className="text-gray-400 hover:text-purple-400 transition-colors"
+	                      title="Generate Proposal"
+	                    >
+	                      <FileText size={18} />
+	                    </Link>
+	                    <Link 
+	                      href={`/landing-pages?businessId=${prospect.id}`}
+	                      className="text-gray-400 hover:text-blue-400 transition-colors"
+	                      title="Generate Landing Page"
+	                    >
+	                      <LayoutDashboard size={18} />
+	                    </Link>
+	                  </div>
+	                </td>
               </tr>
             )) : (
               <tr>
