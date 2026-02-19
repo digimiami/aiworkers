@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare, Mail, Calendar, ShoppingCart, Settings } from 'lucide-react';
+import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare, Mail, Calendar, ShoppingCart, Settings, TrendingUp, Phone } from 'lucide-react';
 
 export default function Navbar() {
   return (
@@ -58,11 +58,27 @@ export default function Navbar() {
 		            <ShoppingCart size={18} />
 		            Bulk
 		          </Link>
-		          <Link href="/settings" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
-		            <Settings size={18} />
-		            Settings
-		          </Link>
-		        </div>
+			  <Link href="/proposal-pdf" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+			    <FileText size={18} />
+			    PDF Proposals
+			  </Link>
+			  <Link href="/roi-calculator" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+			    <TrendingUp size={18} />
+			    ROI Calculator
+			  </Link>
+			  <Link href="/analytics" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+			    <BarChart3 size={18} />
+			    Analytics
+			  </Link>
+			  <Link href="/book" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+			    <Phone size={18} />
+			    Book a Call
+			  </Link>
+			  <Link href="/settings" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap">
+			    <Settings size={18} />
+			    Settings
+			  </Link>
+			</div>
       </div>
     </nav>
   );

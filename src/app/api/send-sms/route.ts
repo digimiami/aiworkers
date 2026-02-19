@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const TWILIO_SID = process.env.TWILIO_SID;
-const TWILIO_AUTH = process.env.TWILIO_AUTH;
-const TWILIO_FROM = process.env.TWILIO_FROM;
+const TWILIO_SID = process.env.TWILIO_SID || '';
+const TWILIO_AUTH = process.env.TWILIO_AUTH || '';
+const TWILIO_FROM = process.env.TWILIO_FROM || '';
 const TWILIO_URL = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
 
 export async function POST(req: Request) {
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
     // Use URLSearchParams for Twilio's form-urlencoded body
     const params = new URLSearchParams();
-    params.append('From', TWILIO_FROM);
+    params.append('From', TWILIO_FROM || '+1234567890');
     params.append('To', to);
     params.append('Body', `Hi! This is the AI Workers Team. We've prepared a custom proposal for ${businessName}. ${message}`);
 
