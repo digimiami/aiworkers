@@ -1,7 +1,44 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare, Mail, Calendar, ShoppingCart, Settings, TrendingUp, Phone, BookOpen, AtSign } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare, Mail, Calendar, ShoppingCart, Settings, TrendingUp, Phone, BookOpen, AtSign, LogOut, User } from 'lucide-react';
+
+interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
 
 export default function Navbar() {
+  const router = useRouter();
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then(data => {
+        if (data?.user) setUser(data.user);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch {
+      // Force redirect even on error
+      window.location.href = '/login';
+    }
+  };
+
   return (
     <nav className="border-b border-purple-500/20 bg-black/50 backdrop-blur-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -71,6 +108,24 @@ export default function Navbar() {
           <Link href="/admin" className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1 rounded-full hover:bg-red-500/20 transition-colors whitespace-nowrap text-sm font-medium">
             <Users size={16} /> Admin
           </Link>
+
+          {/* User info & Logout */}
+          {user && (
+            <div className="flex items-center gap-3 ml-2 pl-3 border-l border-zinc-800">
+              <span className="flex items-center gap-1 text-zinc-400 text-sm whitespace-nowrap">
+                <User size={14} />
+                {user.name}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white px-3 py-1 rounded-full transition-colors whitespace-nowrap text-sm"
+                title="Logout"
+              >
+                <LogOut size={14} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>

@@ -12,53 +12,69 @@ import {
   MapPin,
   Star,
   ExternalLink,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 interface Prospect {
   id: string;
   name: string;
-  address: string;
-  phone: string;
+  address: string | null;
+  phone: string | null;
   website: string | null;
-  rating: number;
-  reviewCount: number;
-  healthScore: number;
-  missing: string[];
-  niche: string;
-  city: string;
-  dateAdded: string;
+  rating: number | null;
+  reviewCount: number | null;
+  healthScore: number | null;
+  missing: string | null;
+  niche: string | null;
+  city: string | null;
+  createdAt: string;
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterNiche, setFilterNiche] = useState('');
   const [filterCity, setFilterCity] = useState('');
-  const [sortBy, setSortBy] = useState<'healthScore' | 'name' | 'dateAdded'>('dateAdded');
+  const [sortBy, setSortBy] = useState<'healthScore' | 'name' | 'createdAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = JSON.parse(localStorage.getItem('prospects') || '[]');
-      setProspects(saved);
-    }
+    fetch('/api/prospects')
+      .then(res => res.json())
+      .then(data => {
+        setProspects(data.prospects || []);
+      })
+      .catch(err => console.error('Failed to load prospects:', err))
+      .finally(() => setLoading(false));
   }, []);
 
+  const parseMissing = (missing: string | null): string[] => {
+    if (!missing) return [];
+    try {
+      return JSON.parse(missing);
+    } catch {
+      return [];
+    }
+  };
+
   const filteredProspects = prospects
-    .filter(p => p.niche.toLowerCase().includes(filterNiche.toLowerCase()))
-    .filter(p => p.city.toLowerCase().includes(filterCity.toLowerCase()))
+    .filter(p => (p.niche || '').toLowerCase().includes(filterNiche.toLowerCase()))
+    .filter(p => (p.city || '').toLowerCase().includes(filterCity.toLowerCase()))
     .sort((a, b) => {
       const factor = sortOrder === 'asc' ? 1 : -1;
-      if (sortBy === 'healthScore') return (a.healthScore - b.healthScore) * factor;
+      if (sortBy === 'healthScore') return ((a.healthScore || 0) - (b.healthScore || 0)) * factor;
       if (sortBy === 'name') return a.name.localeCompare(b.name) * factor;
-      return new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime() * factor;
+      return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * factor;
     });
 
   const stats = {
     total: prospects.length,
-    avgScore: prospects.length ? Math.round(prospects.reduce((acc, p) => acc + p.healthScore, 0) / prospects.length) : 0,
+    avgScore: prospects.length ? Math.round(prospects.reduce((acc, p) => acc + (p.healthScore || 0), 0) / prospects.length) : 0,
     noWebsite: prospects.filter(p => !p.website).length,
   };
 
@@ -153,80 +169,92 @@ export default function Dashboard() {
 
       {/* Prospects Table */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-black/50 border-b border-zinc-800">
-              <th className="px-6 py-4 text-sm font-semibold text-gray-400">Business</th>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-400">Niche / City</th>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-400 text-center">Health Score</th>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-400">Status</th>
-              <th className="px-6 py-4 text-sm font-semibold text-gray-400">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-800">
-            {filteredProspects.length > 0 ? filteredProspects.map((prospect) => (
-              <tr key={prospect.id} className="hover:bg-white/5 transition-colors group">
-                <td className="px-6 py-4">
-                  <div className="font-bold">{prospect.name}</div>
-                  <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                    <MapPin size={10} /> {prospect.address}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm">{prospect.niche}</div>
-                  <div className="text-xs text-gray-500">{prospect.city}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className={cn("text-lg font-bold text-center", getScoreColor(prospect.healthScore))}>
-                    {prospect.healthScore}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {!prospect.website && (
-                      <span className="text-[10px] bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-0.5 rounded-full">No Website</span>
-                    )}
-                    {prospect.rating < 4 && (
-                      <span className="text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full">Low Rating</span>
-                    )}
-                    {prospect.reviewCount < 20 && (
-                      <span className="text-[10px] bg-blue-500/10 text-blue-500 border border-blue-500/20 px-2 py-0.5 rounded-full">Few Reviews</span>
-                    )}
-                  </div>
-                </td>
-<td className="px-6 py-4">
-	                  <div className="flex items-center gap-3">
-	                    {prospect.website && (
-	                      <a href={prospect.website} target="_blank" className="text-gray-400 hover:text-white transition-colors" title="Visit Website">
-	                        <Globe size={18} />
-	                      </a>
-	                    )}
-	                    <Link 
-	                      href={`/proposals?businessId=${prospect.id}`}
-	                      className="text-gray-400 hover:text-purple-400 transition-colors"
-	                      title="Generate Proposal"
-	                    >
-	                      <FileText size={18} />
-	                    </Link>
-	                    <Link 
-	                      href={`/landing-pages?businessId=${prospect.id}`}
-	                      className="text-gray-400 hover:text-blue-400 transition-colors"
-	                      title="Generate Landing Page"
-	                    >
-	                      <LayoutDashboard size={18} />
-	                    </Link>
-	                  </div>
-	                </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="animate-spin text-purple-500" size={32} />
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-black/50 border-b border-zinc-800">
+                <th className="px-6 py-4 text-sm font-semibold text-gray-400">Business</th>
+                <th className="px-6 py-4 text-sm font-semibold text-gray-400">Niche / City</th>
+                <th className="px-6 py-4 text-sm font-semibold text-gray-400 text-center">Health Score</th>
+                <th className="px-6 py-4 text-sm font-semibold text-gray-400">Status</th>
+                <th className="px-6 py-4 text-sm font-semibold text-gray-400">Action</th>
               </tr>
-            )) : (
-              <tr>
-                <td colSpan={5} className="px-6 py-20 text-center text-gray-500">
-                  No prospects found. Start by searching on the homepage!
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {filteredProspects.length > 0 ? filteredProspects.map((prospect) => (
+                <tr 
+                  key={prospect.id} 
+                  className="hover:bg-white/5 transition-colors group cursor-pointer"
+                  onClick={() => router.push(`/prospect/${prospect.id}`)}
+                >
+                  <td className="px-6 py-4">
+                    <div className="font-bold group-hover:text-purple-400 transition-colors">{prospect.name}</div>
+                    {prospect.address && (
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <MapPin size={10} /> {prospect.address}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm">{prospect.niche || '-'}</div>
+                    <div className="text-xs text-gray-500">{prospect.city || '-'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className={cn("text-lg font-bold text-center", getScoreColor(prospect.healthScore || 0))}>
+                      {prospect.healthScore ?? '-'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {!prospect.website && (
+                        <span className="text-[10px] bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-0.5 rounded-full">No Website</span>
+                      )}
+                      {prospect.rating !== null && prospect.rating < 4 && (
+                        <span className="text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full">Low Rating</span>
+                      )}
+                      {prospect.reviewCount !== null && prospect.reviewCount < 20 && (
+                        <span className="text-[10px] bg-blue-500/10 text-blue-500 border border-blue-500/20 px-2 py-0.5 rounded-full">Few Reviews</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                      {prospect.website && (
+                        <a href={prospect.website} target="_blank" className="text-gray-400 hover:text-white transition-colors" title="Visit Website">
+                          <Globe size={18} />
+                        </a>
+                      )}
+                      <Link 
+                        href={`/proposals?businessId=${prospect.id}`}
+                        className="text-gray-400 hover:text-purple-400 transition-colors"
+                        title="Generate Proposal"
+                      >
+                        <FileText size={18} />
+                      </Link>
+                      <Link 
+                        href={`/landing-pages?businessId=${prospect.id}`}
+                        className="text-gray-400 hover:text-blue-400 transition-colors"
+                        title="Generate Landing Page"
+                      >
+                        <LayoutDashboard size={18} />
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-20 text-center text-gray-500">
+                    No prospects found. Start by searching on the homepage!
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

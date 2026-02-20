@@ -12,7 +12,8 @@ import {
   Building2,
   TrendingUp,
   Package,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -45,6 +46,15 @@ interface Business {
   reviewCount: number;
   website: string | null;
   missing: string[];
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+}
+
+interface LLMOption {
+  id: string;
+  name: string;
+  available: boolean;
 }
 
 export default function ProposalsPage() {
@@ -52,15 +62,50 @@ export default function ProposalsPage() {
   const [proposal, setProposal] = useState<ProposalData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [llms, setLlms] = useState<LLMOption[]>([]);
+  const [selectedLlm, setSelectedLlm] = useState('deepseek');
+  const [loadingBusiness, setLoadingBusiness] = useState(true);
 
   useEffect(() => {
+    // Fetch available LLMs
+    axios.get('/api/llms')
+      .then(res => {
+        setLlms(res.data.llms || []);
+        const firstAvailable = (res.data.llms || []).find((l: LLMOption) => l.available);
+        if (firstAvailable) setSelectedLlm(firstAvailable.id);
+      })
+      .catch(() => {});
+
+    // Fetch business from DB instead of localStorage
     const businessId = new URLSearchParams(window.location.search).get('businessId');
     if (businessId) {
-      const saved = JSON.parse(localStorage.getItem('prospects') || '[]');
-      const found = saved.find((p: any) => p.id === businessId);
-      if (found) {
-        setSelectedBusiness(found);
-      }
+      axios.get(`/api/prospects/${businessId}`)
+        .then(res => {
+          const p = res.data.prospect;
+          if (p) {
+            let missingArr: string[] = [];
+            if (p.missing) {
+              try { missingArr = JSON.parse(p.missing); } catch { missingArr = []; }
+            }
+            setSelectedBusiness({
+              id: p.id,
+              name: p.name,
+              niche: p.niche || '',
+              city: p.city || '',
+              rating: p.rating || 0,
+              reviewCount: p.reviewCount || 0,
+              website: p.website,
+              missing: missingArr,
+              email: p.email,
+              phone: p.phone,
+              address: p.address,
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingBusiness(false));
+    } else {
+      setLoadingBusiness(false);
     }
   }, []);
 
@@ -69,26 +114,27 @@ export default function ProposalsPage() {
     setIsGenerating(true);
     setError(null);
     try {
-      const res = await axios.post('/api/generate-proposal', { business: selectedBusiness });
-      setProposal(res.data);
-      
-      // Save proposal to local storage for outreach
-      const savedProposals = JSON.parse(localStorage.getItem('generated_proposals') || '[]');
-      const newProposal = {
-        id: Date.now().toString(),
-        businessId: selectedBusiness.id,
-        businessName: selectedBusiness.name,
-        data: res.data,
-        dateCreated: new Date().toISOString(),
-        status: 'draft'
-      };
-      localStorage.setItem('generated_proposals', JSON.stringify([newProposal, ...savedProposals]));
+      const res = await axios.post('/api/generate-proposal', { 
+        business: selectedBusiness,
+        llm: selectedLlm,
+      });
+      setProposal(res.data.proposal);
     } catch (err) {
       setError('Failed to generate proposal. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
+
+  const selectedLlmName = llms.find(l => l.id === selectedLlm)?.name || selectedLlm;
+
+  if (loadingBusiness) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="animate-spin text-purple-500" size={48} />
+      </div>
+    );
+  }
 
   if (!selectedBusiness) {
     return (
@@ -109,7 +155,7 @@ export default function ProposalsPage() {
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors">
+          <Link href={`/prospect/${selectedBusiness.id}`} className="p-2 hover:bg-zinc-800 rounded-lg transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <div>
@@ -118,13 +164,30 @@ export default function ProposalsPage() {
           </div>
         </div>
         {!proposal && !isGenerating && (
-          <button
-            onClick={generateProposal}
-            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold transition-all flex items-center gap-2"
-          >
-            <Zap className="fill-white" size={18} />
-            Generate with AI
-          </button>
+          <div className="flex items-center gap-3">
+            {/* LLM Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedLlm}
+                onChange={(e) => setSelectedLlm(e.target.value)}
+                className="appearance-none bg-zinc-900 border border-zinc-700 rounded-xl py-2.5 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+              >
+                {llms.map((llm) => (
+                  <option key={llm.id} value={llm.id} disabled={!llm.available}>
+                    {llm.name} {!llm.available ? '(unavailable)' : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-3 top-3 text-zinc-500 pointer-events-none" />
+            </div>
+            <button
+              onClick={generateProposal}
+              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold transition-all flex items-center gap-2"
+            >
+              <Zap className="fill-white" size={18} />
+              Generate with AI
+            </button>
+          </div>
         )}
       </div>
 
@@ -132,7 +195,7 @@ export default function ProposalsPage() {
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-20 flex flex-col items-center justify-center space-y-6">
           <Loader2 className="animate-spin text-purple-500" size={48} />
           <div className="text-center">
-            <h3 className="text-xl font-bold">DeepSeek AI is working...</h3>
+            <h3 className="text-xl font-bold">{selectedLlmName} is working...</h3>
             <p className="text-zinc-400">Analyzing business data and crafting the perfect proposal.</p>
           </div>
         </div>
@@ -158,6 +221,7 @@ export default function ProposalsPage() {
                 <div className="text-right">
                   <p className="text-sm text-zinc-500">Date: {new Date().toLocaleDateString()}</p>
                   <p className="text-sm text-zinc-500">Ref: PROP-{selectedBusiness.id.slice(0, 8)}</p>
+                  <p className="text-sm text-purple-400">Generated by {selectedLlmName}</p>
                 </div>
               </div>
 
@@ -169,77 +233,85 @@ export default function ProposalsPage() {
                 <p className="text-zinc-300 leading-relaxed">{proposal.businessAnalysis}</p>
               </section>
 
-              <section className="space-y-4">
-                <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
-                  <AlertCircle size={20} />
-                  Identified Gaps
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {proposal.whatTheyAreMissing.map((gap, i) => (
-                    <div key={i} className="flex items-start gap-2 text-zinc-400 bg-black/30 p-3 rounded-xl border border-zinc-800/50">
-                      <div className="h-1.5 w-1.5 rounded-full bg-red-500 mt-2 shrink-0" />
-                      {gap}
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {proposal.whatTheyAreMissing && proposal.whatTheyAreMissing.length > 0 && (
+                <section className="space-y-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2 text-red-400">
+                    <AlertCircle size={20} />
+                    Identified Gaps
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {proposal.whatTheyAreMissing.map((gap, i) => (
+                      <div key={i} className="flex items-start gap-2 text-zinc-400 bg-black/30 p-3 rounded-xl border border-zinc-800/50">
+                        <div className="h-1.5 w-1.5 rounded-full bg-red-500 mt-2 shrink-0" />
+                        {gap}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
-              <section className="space-y-4">
-                <h3 className="text-xl font-bold flex items-center gap-2 text-blue-400">
-                  <CheckCircle2 size={20} />
-                  Recommended Solutions
-                </h3>
-                <div className="space-y-4">
-                  {proposal.recommendedServices.map((service, i) => (
-                    <div key={i} className="p-4 bg-zinc-800/30 rounded-2xl border border-zinc-700/30">
-                      <h4 className="font-bold text-lg mb-1">{service.title}</h4>
-                      <p className="text-zinc-400 text-sm">{service.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {proposal.recommendedServices && proposal.recommendedServices.length > 0 && (
+                <section className="space-y-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2 text-blue-400">
+                    <CheckCircle2 size={20} />
+                    Recommended Solutions
+                  </h3>
+                  <div className="space-y-4">
+                    {proposal.recommendedServices.map((service, i) => (
+                      <div key={i} className="p-4 bg-zinc-800/30 rounded-2xl border border-zinc-700/30">
+                        <h4 className="font-bold text-lg mb-1">{service.title}</h4>
+                        <p className="text-zinc-400 text-sm">{service.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
-              <section className="space-y-4">
-                <h3 className="text-xl font-bold flex items-center gap-2 text-green-400">
-                  <TrendingUp size={20} />
-                  Expected ROI
-                </h3>
-                <div className="bg-green-500/5 border border-green-500/20 p-6 rounded-2xl text-zinc-300">
-                  {proposal.roiProjections}
-                </div>
-              </section>
+              {proposal.roiProjections && (
+                <section className="space-y-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2 text-green-400">
+                    <TrendingUp size={20} />
+                    Expected ROI
+                  </h3>
+                  <div className="bg-green-500/5 border border-green-500/20 p-6 rounded-2xl text-zinc-300">
+                    {proposal.roiProjections}
+                  </div>
+                </section>
+              )}
             </div>
           </div>
 
           <div className="space-y-6">
             {/* Pricing Tiers */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 space-y-6">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <Package size={20} className="text-purple-500" />
-                Pricing Plans
-              </h3>
-              <div className="space-y-4">
-                {proposal.pricingTiers.map((tier, i) => (
-                  <div key={i} className={cn(
-                    "p-5 rounded-2xl border transition-all",
-                    i === 1 ? "bg-purple-600/10 border-purple-500/50" : "bg-black/40 border-zinc-800"
-                  )}>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-bold uppercase tracking-wider text-zinc-500">{tier.tier}</span>
-                      <span className="text-lg font-bold text-purple-400">{tier.price}</span>
+            {proposal.pricingTiers && proposal.pricingTiers.length > 0 && (
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 space-y-6">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <Package size={20} className="text-purple-500" />
+                  Pricing Plans
+                </h3>
+                <div className="space-y-4">
+                  {proposal.pricingTiers.map((tier, i) => (
+                    <div key={i} className={cn(
+                      "p-5 rounded-2xl border transition-all",
+                      i === 1 ? "bg-purple-600/10 border-purple-500/50" : "bg-black/40 border-zinc-800"
+                    )}>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-bold uppercase tracking-wider text-zinc-500">{tier.tier}</span>
+                        <span className="text-lg font-bold text-purple-400">{tier.price}</span>
+                      </div>
+                      <ul className="space-y-2">
+                        {tier.features.map((feat, j) => (
+                          <li key={j} className="text-xs text-zinc-400 flex items-center gap-2">
+                            <CheckCircle2 size={12} className="text-green-500" />
+                            {feat}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="space-y-2">
-                      {tier.features.map((feat, j) => (
-                        <li key={j} className="text-xs text-zinc-400 flex items-center gap-2">
-                          <CheckCircle2 size={12} className="text-green-500" />
-                          {feat}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Actions */}
             <div className="grid grid-cols-2 gap-4">

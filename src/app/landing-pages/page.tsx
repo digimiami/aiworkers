@@ -12,7 +12,8 @@ import {
   ExternalLink,
   Smartphone,
   Monitor,
-  CheckCircle
+  CheckCircle,
+  ChevronDown
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,18 @@ interface Business {
   name: string;
   niche: string;
   city: string;
+  phone?: string | null;
+  address?: string | null;
+  website?: string | null;
+  email?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+}
+
+interface LLMOption {
+  id: string;
+  name: string;
+  available: boolean;
 }
 
 export default function LandingPagesPage() {
@@ -38,35 +51,75 @@ export default function LandingPagesPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [llms, setLlms] = useState<LLMOption[]>([]);
+  const [selectedLlm, setSelectedLlm] = useState('deepseek');
+  const [loadingBusiness, setLoadingBusiness] = useState(true);
 
   useEffect(() => {
+    // Fetch available LLMs
+    axios.get('/api/llms')
+      .then(res => {
+        setLlms(res.data.llms || []);
+        const firstAvailable = (res.data.llms || []).find((l: LLMOption) => l.available);
+        if (firstAvailable) setSelectedLlm(firstAvailable.id);
+      })
+      .catch(() => {});
+
+    // Fetch business from DB instead of localStorage
     const businessId = new URLSearchParams(window.location.search).get('businessId');
     if (businessId) {
-      const saved = JSON.parse(localStorage.getItem('prospects') || '[]');
-      const found = saved.find((p: any) => p.id === businessId);
-      if (found) setSelectedBusiness(found);
+      axios.get(`/api/prospects/${businessId}`)
+        .then(res => {
+          const p = res.data.prospect;
+          if (p) {
+            setSelectedBusiness({
+              id: p.id,
+              name: p.name,
+              niche: p.niche || '',
+              city: p.city || '',
+              phone: p.phone,
+              address: p.address,
+              website: p.website,
+              email: p.email,
+              rating: p.rating,
+              reviewCount: p.reviewCount,
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingBusiness(false));
+    } else {
+      setLoadingBusiness(false);
     }
   }, []);
+
+  const selectedLlmName = llms.find(l => l.id === selectedLlm)?.name || selectedLlm;
 
   const generateLandingPage = async () => {
     if (!selectedBusiness) return;
     setIsGenerating(true);
     try {
-      const res = await axios.post('/api/generate-landing-page', { business: selectedBusiness });
-      setContent(res.data);
-      const id = Math.random().toString(36).substring(7);
+      const res = await axios.post('/api/generate-landing-page', { 
+        business: selectedBusiness,
+        llm: selectedLlm,
+      });
+      setContent(res.data.landingPage);
+      const id = res.data.landingPageId || Math.random().toString(36).substring(7);
       setPreviewId(id);
-      
-      // Save for preview route
-      const pages = JSON.parse(localStorage.getItem('generated_pages') || '{}');
-      pages[id] = { ...res.data, businessName: selectedBusiness.name };
-      localStorage.setItem('generated_pages', JSON.stringify(pages));
     } catch (err) {
       console.error(err);
     } finally {
       setIsGenerating(false);
     }
   };
+
+  if (loadingBusiness) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="animate-spin text-blue-500" size={48} />
+      </div>
+    );
+  }
 
   if (!selectedBusiness) {
     return (
@@ -87,7 +140,7 @@ export default function LandingPagesPage() {
     <div className="max-w-7xl mx-auto space-y-6 pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="p-2 hover:bg-zinc-800 rounded-lg transition-colors">
+          <Link href={`/prospect/${selectedBusiness.id}`} className="p-2 hover:bg-zinc-800 rounded-lg transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <div>
@@ -96,13 +149,30 @@ export default function LandingPagesPage() {
           </div>
         </div>
         {!content && !isGenerating && (
-          <button
-            onClick={generateLandingPage}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all flex items-center gap-2"
-          >
-            <Layout size={18} />
-            Generate Landing Page
-          </button>
+          <div className="flex items-center gap-3">
+            {/* LLM Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedLlm}
+                onChange={(e) => setSelectedLlm(e.target.value)}
+                className="appearance-none bg-zinc-900 border border-zinc-700 rounded-xl py-2.5 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                {llms.map((llm) => (
+                  <option key={llm.id} value={llm.id} disabled={!llm.available}>
+                    {llm.name} {!llm.available ? '(unavailable)' : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-3 top-3 text-zinc-500 pointer-events-none" />
+            </div>
+            <button
+              onClick={generateLandingPage}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all flex items-center gap-2"
+            >
+              <Layout size={18} />
+              Generate Landing Page
+            </button>
+          </div>
         )}
       </div>
 
@@ -110,8 +180,8 @@ export default function LandingPagesPage() {
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-20 flex flex-col items-center justify-center space-y-6">
           <Loader2 className="animate-spin text-blue-500" size={48} />
           <div className="text-center">
-            <h3 className="text-xl font-bold">Designing your page...</h3>
-            <p className="text-zinc-400">DeepSeek AI is crafting custom copy and layout for {selectedBusiness.niche}.</p>
+            <h3 className="text-xl font-bold">{selectedLlmName} is designing your page...</h3>
+            <p className="text-zinc-400">Crafting custom copy and layout for {selectedBusiness.niche}.</p>
           </div>
         </div>
       ) : content ? (
@@ -135,18 +205,23 @@ export default function LandingPagesPage() {
                 </button>
               </div>
               <div className="space-y-2">
-                <Link 
-                  href={`/preview/${previewId}`} 
-                  target="_blank"
-                  className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-                >
-                  <ExternalLink size={16} />
-                  Live Preview
-                </Link>
+                {previewId && (
+                  <Link 
+                    href={`/preview/${previewId}`} 
+                    target="_blank"
+                    className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <ExternalLink size={16} />
+                    Live Preview
+                  </Link>
+                )}
                 <button className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
                   <Code size={16} />
                   Export HTML
                 </button>
+              </div>
+              <div className="text-xs text-zinc-500 pt-2 border-t border-zinc-800">
+                Generated by {selectedLlmName}
               </div>
             </div>
 
