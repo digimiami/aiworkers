@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import axios from 'axios';
-import { Search, MapPin, Building2, Globe, Star, Phone, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, MapPin, Building2, Globe, Star, Phone, AlertCircle, Loader2, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Business {
@@ -11,6 +11,7 @@ interface Business {
   address: string;
   phone: string;
   website: string | null;
+  email?: string | null;
   rating: number;
   reviewCount: number;
   photosCount: number;
@@ -174,6 +175,12 @@ export default function SearchPage() {
                 <span className="text-gray-400 flex items-center gap-1"><Phone size={14} /> Phone</span>
                 <span>{business.phone}</span>
               </div>
+              {business.email && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400 flex items-center gap-1"><Mail size={14} /> Email</span>
+                  <a href={`mailto:${business.email}`} className="text-blue-400 hover:underline text-xs truncate">{business.email}</a>
+                </div>
+              )}
             </div>
 
             {!business.isAnalyzing && business.missing && (

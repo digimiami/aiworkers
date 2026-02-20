@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, Settings } from 'lucide-react';
 
 export default function ProposalPDF() {
@@ -15,6 +15,34 @@ export default function ProposalPDF() {
   });
 
   const [formData, setFormData] = useState(settings);
+  const [proposalContent, setProposalContent] = useState('');
+
+  useEffect(() => {
+    // Load settings from localStorage
+    const savedSettings = localStorage.getItem('proposalSettings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setSettings(parsed);
+        setFormData(parsed);
+      } catch (e) {
+        console.error('Failed to parse proposal settings:', e);
+      }
+    }
+
+    // Load proposal content from localStorage
+    const savedProposal = localStorage.getItem('proposals');
+    if (savedProposal) {
+      try {
+        const proposals = JSON.parse(savedProposal);
+        if (proposals.length > 0) {
+          setProposalContent(proposals[0].content || '');
+        }
+      } catch (e) {
+        console.error('Failed to parse proposals:', e);
+      }
+    }
+  }, []);
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
@@ -31,7 +59,18 @@ export default function ProposalPDF() {
   };
 
   const handlePrint = () => {
+    // Use the browser's print functionality
     window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    // Create a new window for printing to PDF
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (printWindow) {
+      printWindow.document.write(document.documentElement.innerHTML);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   const services = [
@@ -41,17 +80,32 @@ export default function ProposalPDF() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-purple-900/20 to-black pt-24 pb-12">
-      <div className="container mx-auto px-4">
+    <>
+      <style>{`
+        @media print {
+          body { margin: 0; padding: 0; }
+          .print\\:hidden { display: none !important; }
+          .page-break { page-break-after: always; }
+        }
+      `}</style>
+      <div className="min-h-screen bg-gradient-to-br from-black via-purple-900/20 to-black pt-24 pb-12">
+        <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           {/* Controls */}
           <div className="flex gap-4 mb-8 print:hidden">
             <button
-              onClick={handlePrint}
+              onClick={handleDownloadPDF}
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
             >
               <Download size={20} />
               Download PDF
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
+            >
+              <Download size={20} />
+              Print
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -177,19 +231,25 @@ export default function ProposalPDF() {
                 Executive Summary
               </h2>
               <div className="space-y-4 text-gray-700">
-                <p>
-                  {settings.prospectCompany} is positioned for significant growth in the digital marketplace. This proposal outlines how AI Workers can accelerate your business through intelligent automation, data-driven marketing, and lead generation strategies.
-                </p>
-                <p>
-                  Our proven methodology has helped businesses like yours increase revenue by 25-40% within the first 12 months through optimized customer acquisition and retention strategies.
-                </p>
-                <h3 className="text-xl font-bold mt-6 mb-3">Current Situation Analysis</h3>
-                <ul className="list-disc list-inside space-y-2">
-                  <li>Limited digital presence and lead generation channels</li>
-                  <li>Manual processes consuming valuable resources</li>
-                  <li>Untapped potential in customer data and insights</li>
-                  <li>Opportunity for revenue growth through AI-powered solutions</li>
-                </ul>
+                {proposalContent ? (
+                  <div dangerouslySetInnerHTML={{ __html: proposalContent }} />
+                ) : (
+                  <>
+                    <p>
+                      {settings.prospectCompany} is positioned for significant growth in the digital marketplace. This proposal outlines how AI Workers can accelerate your business through intelligent automation, data-driven marketing, and lead generation strategies.
+                    </p>
+                    <p>
+                      Our proven methodology has helped businesses like yours increase revenue by 25-40% within the first 12 months through optimized customer acquisition and retention strategies.
+                    </p>
+                    <h3 className="text-xl font-bold mt-6 mb-3">Current Situation Analysis</h3>
+                    <ul className="list-disc list-inside space-y-2">
+                      <li>Limited digital presence and lead generation channels</li>
+                      <li>Manual processes consuming valuable resources</li>
+                      <li>Untapped potential in customer data and insights</li>
+                      <li>Opportunity for revenue growth through AI-powered solutions</li>
+                    </ul>
+                  </>
+                )}
               </div>
             </div>
 
@@ -313,6 +373,7 @@ export default function ProposalPDF() {
           </div>
         </div>
       </div>
+      </div>
 
       <style jsx>{`
         @media print {
@@ -325,6 +386,6 @@ export default function ProposalPDF() {
           }
         }
       `}</style>
-    </div>
+    </>
   );
 }

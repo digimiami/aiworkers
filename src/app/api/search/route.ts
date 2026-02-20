@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
+const HUNTER_API_KEY = process.env.HUNTER_API_KEY || '';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const location = searchParams.get('location');
@@ -26,12 +28,31 @@ export async function GET(request: Request) {
         const detailsResponse = await axios.get(detailsUrl);
         const details = detailsResponse.data.result || {};
 
+        let email = null;
+        // Try to find email using Hunter.io if website is available
+        if (details.website && HUNTER_API_KEY) {
+          try {
+            const url = new URL(details.website.startsWith('http') ? details.website : `https://${details.website}`);
+            const domain = url.hostname.replace('www.', '');
+            const hunterUrl = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}`;
+            const hunterRes = await axios.get(hunterUrl);
+            const hunterData = hunterRes.data?.data;
+            if (hunterData?.emails && hunterData.emails.length > 0) {
+              email = hunterData.emails[0].value;
+            }
+          } catch (err) {
+            // Silently fail email lookup
+            console.error('Email lookup error for', details.name);
+          }
+        }
+
         return {
           id: place.place_id,
           name: details.name || place.name,
           address: details.formatted_address || place.formatted_address,
           phone: details.formatted_phone_number || 'No Phone',
           website: details.website || null,
+          email: email,
           rating: details.rating || 0,
           reviewCount: details.user_ratings_total || 0,
           photosCount: details.photos?.length || 0,

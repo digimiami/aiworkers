@@ -65,17 +65,21 @@ export default function ColdEmailsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate email');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to generate email (${response.status})`);
       }
 
       const data = await response.json();
+      if (!data.subject || !data.body) {
+        throw new Error('Invalid response from email generation API');
+      }
       setGeneratedEmail(data);
       setEditedSubject(data.subject);
       setEditedBody(data.body);
       setMessage('Email generated successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      setMessage('Failed to generate email. Please try again.');
+      setMessage(`Failed to generate email: ${error.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
@@ -100,7 +104,8 @@ export default function ColdEmailsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send email');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to send email (${response.status})`);
       }
 
       setMessage('Email sent successfully!');
@@ -108,9 +113,9 @@ export default function ColdEmailsPage() {
       setEditedBody('');
       setEditedSubject('');
       setSelectedProspect(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
-      setMessage('Failed to send email. Please try again.');
+      setMessage(`Failed to send email: ${error.message || 'Please try again.'}`);
     } finally {
       setSending(false);
     }
@@ -132,7 +137,10 @@ export default function ColdEmailsPage() {
             <h2 className="text-xl font-bold text-white mb-4">Select Prospect</h2>
             
             {prospects.length === 0 ? (
-              <p className="text-gray-400">No prospects found. Create prospects in the CRM first.</p>
+              <div className="text-gray-400 space-y-2">
+                <p>No prospects found. Create prospects in the CRM first.</p>
+                <p className="text-xs text-gray-500">Prospects are loaded from the search results or CRM.</p>
+              </div>
             ) : (
               <div className="space-y-3">
                 {prospects.map((prospect) => (

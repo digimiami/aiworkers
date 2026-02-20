@@ -145,6 +145,65 @@ export default function CampaignsPage() {
     setCampaigns(updated);
   };
 
+  const handleRunCampaign = async (campaignId: string) => {
+    const campaign = campaigns.find((c) => c.id === campaignId);
+    if (!campaign) return;
+
+    for (const prospect of campaign.prospects) {
+      const startDate = new Date(prospect.startedAt);
+      const now = new Date();
+      const daysPassed = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      for (let i = prospect.currentStep; i < campaign.sequence.length; i++) {
+        const step = campaign.sequence[i];
+        if (daysPassed >= step.day) {
+          try {
+            if (step.type === 'email') {
+              await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: prospect.prospectEmail,
+                  businessName: prospect.prospectName,
+                  subject: step.subject || 'Campaign Message',
+                  content: step.content,
+                }),
+              });
+            } else {
+              await fetch('/api/send-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  to: prospect.prospectEmail,
+                  businessName: prospect.prospectName,
+                  message: step.content,
+                }),
+              });
+            }
+          } catch (err) {
+            console.error('Failed to send campaign step:', err);
+          }
+        }
+      }
+    }
+
+    const updated = campaigns.map((c) => {
+      if (c.id === campaignId) {
+        return {
+          ...c,
+          prospects: c.prospects.map((p) => ({
+            ...p,
+            currentStep: campaign.sequence.length,
+            status: 'completed' as const,
+            completedAt: new Date().toISOString(),
+          })),
+        };
+      }
+      return c;
+    });
+    setCampaigns(updated);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-purple-900/20 to-black p-6">
       <div className="max-w-7xl mx-auto">
@@ -180,10 +239,17 @@ export default function CampaignsPage() {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    onClick={() => handleRunCampaign(campaign.id)}
+                    className="p-2 rounded-lg border bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30 transition-all"
+                    title="Run campaign and send pending steps"
+                  >
+                    <Play size={18} />
+                  </button>
+                  <button
                     onClick={() => handleUpdateCampaignStatus(campaign.id, campaign.status === 'active' ? 'paused' : 'active')}
                     className={`p-2 rounded-lg border transition-all ${
                       campaign.status === 'active'
-                        ? 'bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30'
+                        ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 hover:bg-blue-500/30'
                         : 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/30'
                     }`}
                   >
@@ -211,7 +277,8 @@ export default function CampaignsPage() {
                         <div className="text-sm font-semibold text-white">
                           {step.type === 'email' ? '📧' : '💬'} {step.type.charAt(0).toUpperCase() + step.type.slice(1)}
                         </div>
-                        {step.subject && <div className="text-xs text-gray-400">{step.subject}</div>}
+                        {step.subject && <div className="text-xs text-gray-400">Subject: {step.subject}</div>}
+                        <div className="text-xs text-gray-500 line-clamp-1">{step.content}</div>
                       </div>
                     </div>
                   ))}
@@ -297,6 +364,19 @@ export default function CampaignsPage() {
           <div className="text-center py-12">
             <Calendar className="mx-auto text-purple-500/50 mb-4" size={48} />
             <p className="text-gray-400 text-lg">No campaigns yet. Create one to get started!</p>
+          </div>
+        )}
+
+        {campaigns.length > 0 && (
+          <div className="mt-8 bg-blue-500/10 border border-blue-500/30 rounded-lg p-6">
+            <h3 className="text-lg font-bold text-blue-300 mb-3">How Drip Campaigns Work</h3>
+            <ul className="space-y-2 text-sm text-gray-300">
+              <li>Create a campaign with a sequence of steps (emails/SMS on specific days)</li>
+              <li>Add prospects to the campaign</li>
+              <li>Click the green Play button to execute pending steps</li>
+              <li>Steps are sent based on the day count from when the prospect was added</li>
+              <li>Use the blue pause/play button to pause/resume the campaign</li>
+            </ul>
           </div>
         )}
       </div>

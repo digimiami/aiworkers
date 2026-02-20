@@ -27,6 +27,15 @@ interface SentOutreach {
   dateSent: string;
   recipient: string;
   contentSnippet: string;
+  fullContent?: string;
+  replies?: OutreachReply[];
+}
+
+interface OutreachReply {
+  id: string;
+  content: string;
+  dateSent: string;
+  sender: 'us' | 'them';
 }
 
 interface Business {
@@ -44,12 +53,17 @@ export default function OutreachPage() {
   const [recipient, setRecipient] = useState('');
   const [outreachType, setOutreachType] = useState<'email' | 'sms'>('email');
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [findingEmail, setFindingEmail] = useState(false);
+  const [expandedThreadId, setExpandedThreadId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     // Load history
     const savedHistory = JSON.parse(localStorage.getItem('outreach_history') || '[]');
     setOutreachHistory(savedHistory);
+  }, []);
 
+  useEffect(() => {
     // Load selected business if any
     const businessId = new URLSearchParams(window.location.search).get('businessId');
     if (businessId) {
@@ -59,9 +73,41 @@ export default function OutreachPage() {
         setSelectedBusiness(found);
         setRecipient(outreachType === 'email' ? 'onboarding@resend.dev' : found.phone);
         setMessage(`We've analyzed ${found.name} and found several areas where we can help you grow. Check out our proposal!`);
+        
+        // Auto-find email if email type and website available
+        if (outreachType === 'email' && found.website) {
+          findEmailForBusiness(found);
+        }
       }
     }
   }, [outreachType]);
+
+  const findEmailForBusiness = async (business: Business) => {
+    if (!business.website) return;
+    
+    setFindingEmail(true);
+    try {
+      // Extract domain from website
+      const url = new URL(business.website.startsWith('http') ? business.website : `https://${business.website}`);
+      const domain = url.hostname.replace('www.', '');
+      
+      const response = await axios.post('/api/find-email', {
+        domain: domain,
+        companyName: business.name
+      });
+      
+      if (response.data.emails && response.data.emails.length > 0) {
+        const primaryEmail = response.data.emails[0].email;
+        setRecipient(primaryEmail);
+      } else if (response.data.guessedEmails && response.data.guessedEmails.length > 0) {
+        setRecipient(response.data.guessedEmails[0]);
+      }
+    } catch (err) {
+      console.error('Error finding email:', err);
+    } finally {
+      setFindingEmail(false);
+    }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +139,9 @@ export default function OutreachPage() {
         status: 'sent',
         dateSent: new Date().toISOString(),
         recipient: recipient,
-        contentSnippet: message.substring(0, 100)
+        contentSnippet: message.substring(0, 100),
+        fullContent: message,
+        replies: []
       };
 
       const updatedHistory = [newOutreach, ...outreachHistory];
@@ -106,6 +154,55 @@ export default function OutreachPage() {
       setStatusMessage({ type: 'error', text: `Failed to send ${outreachType}. Please check your configuration.` });
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleReply = async (outreachId: string) => {
+    const reply = replyContent[outreachId];
+    if (!reply) return;
+
+    const outreach = outreachHistory.find(o => o.id === outreachId);
+    if (!outreach) return;
+
+    try {
+      if (outreach.type === 'email') {
+        await axios.post('/api/send-email', {
+          email: outreach.recipient,
+          businessName: outreach.businessName,
+          content: reply
+        });
+      } else {
+        await axios.post('/api/send-sms', {
+          to: outreach.recipient,
+          businessName: outreach.businessName,
+          message: reply
+        });
+      }
+
+      const newReply: OutreachReply = {
+        id: Math.random().toString(36).substring(7),
+        content: reply,
+        dateSent: new Date().toISOString(),
+        sender: 'us'
+      };
+
+      const updatedHistory = outreachHistory.map(o => {
+        if (o.id === outreachId) {
+          return {
+            ...o,
+            replies: [...(o.replies || []), newReply],
+            status: 'replied' as const
+          };
+        }
+        return o;
+      });
+
+      setOutreachHistory(updatedHistory);
+      localStorage.setItem('outreach_history', JSON.stringify(updatedHistory));
+      setReplyContent({ ...replyContent, [outreachId]: '' });
+      setStatusMessage({ type: 'success', text: 'Reply sent successfully!' });
+    } catch (err) {
+      setStatusMessage({ type: 'error', text: 'Failed to send reply.' });
     }
   };
 
@@ -152,7 +249,19 @@ export default function OutreachPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs text-zinc-500 uppercase font-bold">Recipient</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-zinc-500 uppercase font-bold">Recipient</label>
+                    {selectedBusiness?.website && outreachType === 'email' && (
+                      <button
+                        type="button"
+                        onClick={() => findEmailForBusiness(selectedBusiness)}
+                        disabled={findingEmail}
+                        className="text-xs text-blue-500 hover:text-blue-400 disabled:opacity-50"
+                      >
+                        {findingEmail ? 'Finding...' : 'Auto-find'}
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={recipient}
@@ -242,13 +351,49 @@ export default function OutreachPage() {
                   </div>
                   <p className="text-sm text-zinc-400 line-clamp-2 italic">&quot;{item.contentSnippet}...&quot;</p>
                   <div className="mt-4 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="text-xs font-bold text-blue-500 flex items-center gap-1">
-                      View Thread <ArrowRight size={12} />
+                    <button onClick={() => setExpandedThreadId(expandedThreadId === item.id ? null : item.id)} className="text-xs font-bold text-blue-500 flex items-center gap-1">
+                      {expandedThreadId === item.id ? 'Hide' : 'View'} Thread <ArrowRight size={12} />
                     </button>
                     <Link href={`/proposals?businessId=${item.businessId}`} className="text-xs font-bold text-zinc-500 flex items-center gap-1">
                       View Proposal <ExternalLink size={12} />
                     </Link>
                   </div>
+                  
+                  {expandedThreadId === item.id && (
+                    <div className="mt-4 pt-4 border-t border-zinc-800 space-y-3">
+                      <div className="bg-black/50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                        <p className="text-xs font-bold text-zinc-400 mb-2">Original Message:</p>
+                        <p className="text-sm text-zinc-300">{item.fullContent || item.contentSnippet}</p>
+                      </div>
+                      
+                      {item.replies && item.replies.length > 0 && (
+                        <div className="space-y-2">
+                          {item.replies.map(reply => (
+                            <div key={reply.id} className="bg-zinc-800/50 rounded-lg p-3">
+                              <p className="text-xs text-zinc-400 mb-1">{reply.sender === 'us' ? 'Our Reply' : 'Their Reply'} - {new Date(reply.dateSent).toLocaleDateString()}</p>
+                              <p className="text-sm text-zinc-300">{reply.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <textarea
+                          value={replyContent[item.id] || ''}
+                          onChange={(e) => setReplyContent({ ...replyContent, [item.id]: e.target.value })}
+                          placeholder="Write a reply..."
+                          className="flex-1 bg-black border border-zinc-800 rounded-lg py-2 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          rows={2}
+                        />
+                        <button
+                          onClick={() => handleReply(item.id)}
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-bold flex items-center gap-1 whitespace-nowrap"
+                        >
+                          <Send size={12} /> Send
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )) : (
                 <div className="py-20 text-center text-zinc-600">

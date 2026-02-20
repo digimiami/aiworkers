@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { Calendar, Clock, CheckCircle, Loader } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, Clock, CheckCircle, Loader, Trash2 } from 'lucide-react';
 
 export default function BookAppointment() {
-  const [step, setStep] = useState<'calendar' | 'form' | 'confirmation'>('calendar');
+  const [step, setStep] = useState<'calendar' | 'form' | 'confirmation' | 'bookings'>('calendar');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [bookings, setBookings] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +20,12 @@ export default function BookAppointment() {
   });
 
   const [confirmationData, setConfirmationData] = useState<any>(null);
+
+  useEffect(() => {
+    // Load bookings from localStorage
+    const savedBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+    setBookings(savedBookings);
+  }, []);
 
   // Generate available dates (next 30 days, excluding weekends)
   const getAvailableDates = () => {
@@ -75,15 +82,22 @@ export default function BookAppointment() {
       setStep('confirmation');
 
       // Store booking in localStorage
-      const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      bookings.push(data.booking);
-      localStorage.setItem('bookings', JSON.stringify(bookings));
+      const savedBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+      savedBookings.push(data.booking);
+      localStorage.setItem('bookings', JSON.stringify(savedBookings));
+      setBookings(savedBookings);
     } catch (err) {
       setError('Failed to complete booking. Please try again.');
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteBooking = (bookingId: string) => {
+    const updated = bookings.filter((b) => b.id !== bookingId);
+    setBookings(updated);
+    localStorage.setItem('bookings', JSON.stringify(updated));
   };
 
   const availableDates = getAvailableDates();
@@ -101,6 +115,76 @@ export default function BookAppointment() {
               Schedule a consultation with our AI Workers team
             </p>
           </div>
+
+          {/* My Bookings Step */}
+          {step === 'bookings' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white">My Bookings</h2>
+                <button
+                  onClick={() => setStep('calendar')}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-all"
+                >
+                  New Booking
+                </button>
+              </div>
+
+              {bookings.length === 0 ? (
+                <div className="bg-white/5 border border-purple-500/20 rounded-lg p-8 text-center">
+                  <Calendar size={48} className="mx-auto text-purple-500/50 mb-4" />
+                  <p className="text-gray-400 text-lg">No bookings yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {bookings.map((booking) => (
+                    <div key={booking.id} className="bg-white/5 border border-purple-500/20 rounded-lg p-6 hover:border-purple-500/50 transition-all">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-white">{booking.name}</h3>
+                          <p className="text-sm text-gray-400">{booking.businessName}</p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteBooking(booking.id)}
+                          className="text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 text-sm text-gray-300">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={16} className="text-purple-400" />
+                          <span>{booking.selectedDate}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock size={16} className="text-purple-400" />
+                          <span>{booking.selectedTime}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-purple-400">Service:</span>
+                          <span>{booking.preferredService}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-purple-400">Email:</span>
+                          <span className="text-xs truncate">{booking.email}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-purple-500/10">
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                          booking.status === 'completed'
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {booking.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Confirmation Step */}
           {step === 'confirmation' && confirmationData && (
@@ -146,18 +230,37 @@ export default function BookAppointment() {
                 A confirmation email has been sent to <span className="text-white font-semibold">{confirmationData.email}</span>
               </p>
 
-              <button
-                onClick={() => window.location.href = '/'}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all"
-              >
-                Back to Home
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setStep('bookings')}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 px-8 rounded-lg transition-all border border-purple-500/20"
+                >
+                  View My Bookings
+                </button>
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all"
+                >
+                  Back to Home
+                </button>
+              </div>
             </div>
           )}
 
           {/* Calendar Step */}
           {step === 'calendar' && (
-            <div className="bg-white/5 border border-purple-500/20 rounded-lg p-8 backdrop-blur-sm">
+            <div>
+              {bookings.length > 0 && (
+                <div className="mb-6 flex justify-end">
+                  <button
+                    onClick={() => setStep('bookings')}
+                    className="text-sm font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                  >
+                    <Calendar size={16} /> View My {bookings.length} Booking{bookings.length !== 1 ? 's' : ''}
+                  </button>
+                </div>
+              )}
+              <div className="bg-white/5 border border-purple-500/20 rounded-lg p-8 backdrop-blur-sm">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                 <Calendar size={24} />
                 Select Date & Time
@@ -211,13 +314,14 @@ export default function BookAppointment() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setStep('form')}
-                disabled={!selectedDate || !selectedTime}
-                className="w-full mt-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition-all"
-              >
-                Continue to Details
-              </button>
+                <button
+                  onClick={() => setStep('form')}
+                  disabled={!selectedDate || !selectedTime}
+                  className="w-full mt-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition-all"
+                >
+                  Continue to Details
+                </button>
+              </div>
             </div>
           )}
 
