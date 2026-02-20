@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const response = await axios.post(
       RESEND_URL,
       {
-        from: 'onboarding@resend.dev',
+        from: 'contact@aiworkers.vip',
         to: email || 'delivered@resend.dev', // Use a default for testing if not provided
         subject: subject || `Proposal for ${businessName}`,
         html: `

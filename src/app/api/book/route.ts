@@ -13,7 +13,7 @@ interface BookingData {
 const TELEGRAM_BOT_TOKEN = '8259816532:AAG5GDoyujycdr5Rx3nmcrWmySrUPNC0yno';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1002351768088'; // Default admin chat
 const RESEND_API_KEY = 're_ARxN3XtQ_EZdv3o7ZLjWXkZ9PuYLBNVYZ';
-const ADMIN_EMAIL = 'onboarding@resend.dev';
+const ADMIN_EMAIL = 'contact@aiworkers.vip';
 
 export async function POST(request: NextRequest) {
   try {
@@ -74,7 +74,7 @@ Link: https://aiworkers.app/analytics?booking=${booking.id}
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'onboarding@resend.dev',
+          from: 'contact@aiworkers.vip',
           to: ADMIN_EMAIL,
           subject: `New Booking: ${bookingData.businessName}`,
           html: `
@@ -104,7 +104,7 @@ Link: https://aiworkers.app/analytics?booking=${booking.id}
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'onboarding@resend.dev',
+          from: 'contact@aiworkers.vip',
           to: bookingData.email,
           subject: 'Booking Confirmation - AI Workers',
           html: `
