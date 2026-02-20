@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-1511f9e02a8b4cf3909ebafbc80cb881';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 
 export async function POST(req: Request) {

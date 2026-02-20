@@ -39,7 +39,7 @@ Base your calculations on:
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer sk-1511f9e02a8b4cf3909ebafbc80cb881`,
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || ''}`,
       },
       body: JSON.stringify({
         model: 'deepseek-chat',

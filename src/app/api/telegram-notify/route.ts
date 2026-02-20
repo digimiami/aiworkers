@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8259816532:AAG5GDoyujycdr5Rx3nmcrWmySrUPNC0yno';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || (process.env.TELEGRAM_BOT_TOKEN || '');
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 export interface TelegramNotification {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_ARxN3XtQ_EZdv3o7ZLjWXkZ9PuYLBNVYZ';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const RESEND_URL = 'https://api.resend.com/emails';
 
 export async function POST(req: Request) {

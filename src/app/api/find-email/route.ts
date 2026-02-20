@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const HUNTER_API_KEY = process.env.HUNTER_API_KEY || '5a06494e85e35a78d590712a30f7312917688a89';
+const HUNTER_API_KEY = process.env.HUNTER_API_KEY || '';
 
 export async function POST(req: Request) {
   try {

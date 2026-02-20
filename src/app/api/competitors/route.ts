@@ -9,8 +9,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business name and location are required' }, { status: 400 });
     }
 
-    const googleMapsKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBxuRxr1kdsVxQxp8iPPO0lk_qW8RdaZ0w';
-    const deepseekKey = process.env.DEEPSEEK_API_KEY || 'sk-1511f9e02a8b4cf3909ebafbc80cb881';
+    const googleMapsKey = process.env.GOOGLE_MAPS_API_KEY || '';
+    const deepseekKey = process.env.DEEPSEEK_API_KEY || '';
     const deepseekUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions';
 
     // Search for the business to get its details and category

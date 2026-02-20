@@ -5,7 +5,7 @@ export async function POST(request: Request) {
   try {
     const business = await request.json();
 
-    const apiKey = process.env.DEEPSEEK_API_KEY || 'sk-1511f9e02a8b4cf3909ebafbc80cb881';
+    const apiKey = process.env.DEEPSEEK_API_KEY || '';
     const apiUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions';
 
     const prompt = `Analyze this local business for prospecting:

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-1511f9e02a8b4cf3909ebafbc80cb881'}`,
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || ''}`,
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-1511f9e02a8b4cf3909ebafbc80cb881'}`,
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || ''}`,
       },
       body: JSON.stringify({
         model: 'deepseek-chat',

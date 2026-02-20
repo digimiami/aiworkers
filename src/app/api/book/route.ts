@@ -10,9 +10,9 @@ interface BookingData {
   selectedTime: string;
 }
 
-const TELEGRAM_BOT_TOKEN = '8259816532:AAG5GDoyujycdr5Rx3nmcrWmySrUPNC0yno';
+const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '');
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1002351768088'; // Default admin chat
-const RESEND_API_KEY = 're_ARxN3XtQ_EZdv3o7ZLjWXkZ9PuYLBNVYZ';
+const RESEND_API_KEY = '';
 const ADMIN_EMAIL = 'contact@aiworkers.vip';
 
 export async function POST(request: NextRequest) {
