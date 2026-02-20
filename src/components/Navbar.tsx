@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare, Mail, Calendar, ShoppingCart, Settings, TrendingUp, Phone, BookOpen, AtSign, LogOut, User } from 'lucide-react';
 
 interface AuthUser {
@@ -14,9 +14,11 @@ interface AuthUser {
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
+    if (pathname === '/login') return;
     fetch('/api/auth/me')
       .then(res => {
         if (res.ok) return res.json();
@@ -26,7 +28,10 @@ export default function Navbar() {
         if (data?.user) setUser(data.user);
       })
       .catch(() => {});
-  }, []);
+  }, [pathname]);
+
+  // Don't show navbar on login page
+  if (pathname === '/login') return null;
 
   const handleLogout = async () => {
     try {
