@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare, Mail, Calendar, ShoppingCart, Settings, TrendingUp, Phone, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Search, Zap, FileText, Send, Globe, Briefcase, BarChart3, Users, CheckSquare, Mail, Calendar, ShoppingCart, Settings, TrendingUp, Phone, BookOpen, AtSign } from 'lucide-react';
 
 export default function Navbar() {
   return (
@@ -40,6 +40,9 @@ export default function Navbar() {
           </Link>
           <Link href="/landing-pages" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap text-sm">
             <Globe size={16} /> Landing Pages
+          </Link>
+          <Link href="/email-finder" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap text-sm">
+            <AtSign size={16} /> Email Finder
           </Link>
           <Link href="/cold-emails" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap text-sm">
             <Mail size={16} /> Cold Emails
