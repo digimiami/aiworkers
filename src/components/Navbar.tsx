@@ -68,6 +68,9 @@ export default function Navbar() {
           <Link href="/settings" className="flex items-center gap-1 text-gray-300 hover:text-white transition-colors whitespace-nowrap text-sm">
             <Settings size={16} /> Settings
           </Link>
+          <Link href="/admin" className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1 rounded-full hover:bg-red-500/20 transition-colors whitespace-nowrap text-sm font-medium">
+            <Users size={16} /> Admin
+          </Link>
         </div>
       </div>
     </nav>

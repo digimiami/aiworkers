@@ -51,20 +51,25 @@ export default function SearchPage() {
               isAnalyzing: false 
             };
             
-            // Save to local storage for dashboard
-            if (typeof window !== 'undefined') {
-              const saved = JSON.parse(localStorage.getItem('prospects') || '[]');
-              const exists = saved.find((p: any) => p.id === business.id);
-              if (!exists) {
-                const newProspect = { 
-                  ...newResults[index], 
-                  niche, 
-                  city: location, 
-                  dateAdded: new Date().toISOString() 
-                };
-                localStorage.setItem('prospects', JSON.stringify([...saved, newProspect]));
-              }
-            }
+            // Save to backend DB
+            fetch('/api/prospects', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                placeId: business.id,
+                name: business.name,
+                address: business.address,
+                phone: business.phone,
+                website: business.website,
+                email: business.email || newResults[index].email,
+                rating: business.rating,
+                reviewCount: business.reviewCount,
+                niche,
+                city: location,
+                healthScore: newResults[index].healthScore,
+                missing: JSON.stringify(newResults[index].missing || []),
+              }),
+            }).catch(e => console.error('Failed to save prospect:', e));
             
             return newResults;
           });

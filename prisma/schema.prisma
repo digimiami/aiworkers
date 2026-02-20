@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+}
+
+model Prospect {
+  id          String   @id @default(cuid())
+  placeId     String?  @unique
+  name        String
+  address     String?
+  phone       String?
+  website     String?
+  email       String?
+  rating      Float?
+  reviewCount Int?
+  niche       String?
+  city        String?
+  healthScore Int?
+  missing     String?
+  createdAt   DateTime @default(now())
+  proposals   Proposal[]
+  landingPages LandingPage[]
+  outreach    Outreach[]
+  bookings    Booking[]
+}
+
+model Proposal {
+  id          String   @id @default(cuid())
+  prospectId  String
+  prospect    Prospect @relation(fields: [prospectId], references: [id])
+  content     String
+  pricing     String?
+  llmUsed     String?
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LandingPage {
+  id          String   @id @default(cuid())
+  prospectId  String
+  prospect    Prospect @relation(fields: [prospectId], references: [id])
+  content     String
+  slug        String   @unique
+  wordCount   Int?
+  llmUsed     String?
+  hasChatbot  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Outreach {
+  id          String   @id @default(cuid())
+  prospectId  String
+  prospect    Prospect @relation(fields: [prospectId], references: [id])
+  type        String
+  recipient   String
+  subject     String?
+  content     String
+  status      String   @default("sent")
+  replies     String?
+  createdAt   DateTime @default(now())
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  steps       String
+  prospects   String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+}
+
+model Booking {
+  id          String   @id @default(cuid())
+  prospectId  String?
+  prospect    Prospect? @relation(fields: [prospectId], references: [id])
+  clientName  String
+  clientEmail String
+  clientPhone String?
+  date        String
+  time        String
+  notes       String?
+  status      String   @default("confirmed")
+  createdAt   DateTime @default(now())
+}
+
+model ColdEmail {
+  id          String   @id @default(cuid())
+  businessName String
+  recipient   String?
+  subject     String
+  body        String
+  tone        String?
+  llmUsed     String?
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+}
